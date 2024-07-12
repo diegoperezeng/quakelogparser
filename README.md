@@ -17,12 +17,12 @@ This project is a parser for Quake 3 Arena game logs. It reads the log file, gro
    ```sh
    git clone <url-of-the-repository>
    cd quake-log-parser
-   ```sh
+   ```
 
 2. **Initialize the Go module**
 
    ```sh
    go mod tidy
-   ```sh
+   ```
 
 
