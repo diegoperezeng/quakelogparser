@@ -3,9 +3,9 @@ package parser
 import (
 	"fmt"
 	"quakelogparser/internal/parser"
+	"quakelogparser/internal/report"
 	"quakelogparser/internal/service"
 	"quakelogparser/internal/utils"
-	"quakelogparser/pkg/report"
 )
 
 func Run() {
