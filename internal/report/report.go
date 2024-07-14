@@ -1,67 +1,45 @@
 package report
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
+	"os"
+	"path/filepath"
 	"quakelogparser/internal/domain"
 	"sort"
+	"strconv"
 )
 
 func GenerateReport(groupedMatches map[string]*domain.Match) {
-	var buffer bytes.Buffer
-	buffer.WriteString("{")
-	keys := make([]string, 0, len(groupedMatches))
-	for k := range groupedMatches {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-	for i, k := range keys {
-		match := groupedMatches[k]
+	ensureOutputDirectory()
+
+	allMatches := make(map[string]interface{})
+	for _, match := range groupedMatches {
 		reportData := map[string]interface{}{
 			"TotalKills": match.TotalKills,
 			"Players":    extractPlayerNames(match.Players),
 			"Kills":      match.Kills,
 		}
-		report, err := json.MarshalIndent(reportData, "", "  ")
-		if err != nil {
-			fmt.Println("Error generating report:", err)
-			continue
-		}
-		if i > 0 {
-			buffer.WriteString(",")
-		}
-		buffer.WriteString(fmt.Sprintf("\"%s\":%s", match.ID, report))
+		allMatches[match.ID] = reportData
 	}
-	buffer.WriteString("}")
-	fmt.Println(buffer.String())
+
+	filePath := filepath.Join("output", "matches.json")
+	saveToFile(filePath, allMatches)
 }
 
 func GenerateReportDeathByMeans(groupedMatchesDBM map[string]*domain.MatchDeathsByMeans) {
-	var buffer bytes.Buffer
-	buffer.WriteString("{")
-	keys := make([]string, 0, len(groupedMatchesDBM))
-	for k := range groupedMatchesDBM {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-	for i, k := range keys {
-		match := groupedMatchesDBM[k]
+	ensureOutputDirectory()
+
+	allMatchesDBM := make(map[string]interface{})
+	for _, match := range groupedMatchesDBM {
 		reportData := map[string]interface{}{
 			"kills_by_means": match.DeathsByMeans,
 		}
-		reportDBM, err := json.MarshalIndent(reportData, "", "  ")
-		if err != nil {
-			fmt.Println("Error generating DeathByMeans report:", err)
-			continue
-		}
-		if i > 0 {
-			buffer.WriteString(",")
-		}
-		buffer.WriteString(fmt.Sprintf("\"%s\":%s", match.ID, reportDBM))
+		allMatchesDBM[match.ID] = reportData
 	}
-	buffer.WriteString("}")
-	fmt.Println(buffer.String())
+
+	filePath := filepath.Join("output", "matches_dbm.json")
+	saveToFile(filePath, allMatchesDBM)
 }
 
 func extractPlayerNames(players map[string]*domain.Player) []string {
@@ -71,4 +49,44 @@ func extractPlayerNames(players map[string]*domain.Player) []string {
 	}
 	sort.Strings(names)
 	return names
+}
+
+func ensureOutputDirectory() {
+	if _, err := os.Stat("output"); os.IsNotExist(err) {
+		err = os.Mkdir("output", 0755)
+		if err != nil {
+			fmt.Println("Error creating output directory:", err)
+		}
+	}
+}
+
+func saveToFile(filePath string, data map[string]interface{}) {
+	file, err := os.Create(filePath)
+	if err != nil {
+		fmt.Println("Error creating file:", err)
+		return
+	}
+	defer file.Close()
+
+	orderedData := make(map[string]interface{})
+	keys := make([]string, 0, len(data))
+	for k := range data {
+		keys = append(keys, k)
+	}
+	sort.Slice(keys, func(i, j int) bool {
+		numI, _ := strconv.Atoi(keys[i][5:])
+		numJ, _ := strconv.Atoi(keys[j][5:])
+		return numI < numJ
+	})
+
+	for _, k := range keys {
+		orderedData[k] = data[k]
+	}
+
+	report, err := json.MarshalIndent(orderedData, "", "  ")
+	if err != nil {
+		fmt.Println("Error generating JSON:", err)
+		return
+	}
+	file.Write(report)
 }

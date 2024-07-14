@@ -1,8 +1,8 @@
 package parser
 
 import (
+	"fmt"
 	"quakelogparser/internal/domain"
-	"strconv"
 	"strings"
 )
 
@@ -11,24 +11,24 @@ func ParseLogFile(data string) ([]*domain.Match, []*domain.MatchDeathsByMeans, e
 	var matchesDBM []*domain.MatchDeathsByMeans
 	lines := strings.Split(data, "\n")
 	var currentMatch *domain.Match
-	var CurrentMatchDBM *domain.MatchDeathsByMeans
+	var currentMatchDBM *domain.MatchDeathsByMeans
 
 	for _, line := range lines {
 		if strings.Contains(line, "InitGame") {
+			matchID := fmt.Sprintf("game_%02d", len(matches)+1)
 			currentMatch = &domain.Match{
-				ID:      "game_" + strconv.Itoa(len(matches)+1),
+				ID:      matchID,
 				Players: make(map[string]*domain.Player),
 				Kills:   make(map[string]int),
 			}
 
-			CurrentMatchDBM = &domain.MatchDeathsByMeans{
-				ID:            "game_" + strconv.Itoa(len(matchesDBM)+1),
+			currentMatchDBM = &domain.MatchDeathsByMeans{
+				ID:            matchID,
 				DeathsByMeans: make(map[string]int),
 			}
 
 			matches = append(matches, currentMatch)
-			matchesDBM = append(matchesDBM, CurrentMatchDBM)
-
+			matchesDBM = append(matchesDBM, currentMatchDBM)
 		}
 
 		if strings.Contains(line, "Kill") {
@@ -57,7 +57,7 @@ func ParseLogFile(data string) ([]*domain.Match, []*domain.MatchDeathsByMeans, e
 				currentMatch.Kills[killer.Name]++
 			}
 
-			CurrentMatchDBM.DeathsByMeans[domain.DeathCause(modID).String()]++
+			currentMatchDBM.DeathsByMeans[domain.DeathCause(modID).String()]++
 			currentMatch.TotalKills++
 		}
 	}
@@ -66,7 +66,6 @@ func ParseLogFile(data string) ([]*domain.Match, []*domain.MatchDeathsByMeans, e
 }
 
 func resolvePlayer(playerName string, match *domain.Match) *domain.Player {
-
 	if player, exists := match.Players[playerName]; exists {
 		return player
 	} else if playerName == "<world>" {
