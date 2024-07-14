@@ -68,7 +68,7 @@ go test ./...
 
 ## Example Usage
 
-1. Place your Quake log file in the `files` directory.
+1. Place your Quake log file (must be named qgames.log) in the `files` directory.
 2. Execute the project using the `go run main.go` command.
 3. Check the `output` directory for the generated JSON reports:
     - `matches.json`: Contains detailed match data.
