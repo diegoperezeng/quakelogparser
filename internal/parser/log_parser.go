@@ -15,54 +15,63 @@ func ParseLogFile(data string) ([]*domain.Match, []*domain.MatchDeathsByMeans, e
 
 	for _, line := range lines {
 		if strings.Contains(line, "InitGame") {
-			matchID := fmt.Sprintf("game_%02d", len(matches)+1)
-			currentMatch = &domain.Match{
-				ID:      matchID,
-				Players: make(map[string]*domain.Player),
-				Kills:   make(map[string]int),
-			}
-
-			currentMatchDBM = &domain.MatchDeathsByMeans{
-				ID:            matchID,
-				DeathsByMeans: make(map[string]int),
-			}
-
+			currentMatch, currentMatchDBM = initializeNewGame(len(matches) + 1)
 			matches = append(matches, currentMatch)
 			matchesDBM = append(matchesDBM, currentMatchDBM)
 		}
 
 		if strings.Contains(line, "Kill") {
-			parts := strings.Split(line, ": ")
-			if len(parts) < 3 {
-				continue
-			}
-			killInfo := parts[2]
-			killData := strings.Fields(killInfo)
-			if len(killData) != 5 {
-				continue
-			}
-			killerName := killData[0]
-			killedName := killData[2]
-			modID, err := domain.ParseDeathCause(killData[4])
-			if err != nil {
-				continue
-			}
-
-			killer := resolvePlayer(killerName, currentMatch)
-			killed := resolvePlayer(killedName, currentMatch)
-
-			if killer.Name == "<world>" {
-				currentMatch.Kills[killed.Name]--
-			} else {
-				currentMatch.Kills[killer.Name]++
-			}
-
-			currentMatchDBM.DeathsByMeans[domain.DeathCause(modID).String()]++
-			currentMatch.TotalKills++
+			processKillLine(line, currentMatch, currentMatchDBM)
 		}
 	}
 
 	return matches, matchesDBM, nil
+}
+
+func initializeNewGame(matchNumber int) (*domain.Match, *domain.MatchDeathsByMeans) {
+	matchID := fmt.Sprintf("game_%02d", matchNumber)
+	currentMatch := &domain.Match{
+		ID:      matchID,
+		Players: make(map[string]*domain.Player),
+		Kills:   make(map[string]int),
+	}
+
+	currentMatchDBM := &domain.MatchDeathsByMeans{
+		ID:            matchID,
+		DeathsByMeans: make(map[string]int),
+	}
+
+	return currentMatch, currentMatchDBM
+}
+
+func processKillLine(line string, currentMatch *domain.Match, currentMatchDBM *domain.MatchDeathsByMeans) {
+	parts := strings.Split(line, ": ")
+	if len(parts) < 3 {
+		return
+	}
+	killInfo := parts[2]
+	killData := strings.Fields(killInfo)
+	if len(killData) != 5 {
+		return
+	}
+	killerName := killData[0]
+	killedName := killData[2]
+	modID, err := domain.ParseDeathCause(killData[4])
+	if err != nil {
+		return
+	}
+
+	killer := resolvePlayer(killerName, currentMatch)
+	killed := resolvePlayer(killedName, currentMatch)
+
+	if killer.Name == "<world>" {
+		currentMatch.Kills[killed.Name]--
+	} else {
+		currentMatch.Kills[killer.Name]++
+	}
+
+	currentMatchDBM.DeathsByMeans[domain.DeathCause(modID).String()]++
+	currentMatch.TotalKills++
 }
 
 func resolvePlayer(playerName string, match *domain.Match) *domain.Player {
