@@ -84,4 +84,4 @@ This project is licensed under the MIT License.
 
 ## Contact
 
-For any questions or suggestions, please open an issue or contact the repository owner at your.email@example.com.
+For any questions or suggestions, please open an issue or contact the repository owner at diegoperez.eng@gmail.com.
